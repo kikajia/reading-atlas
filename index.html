@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>讀痕 · Reading Atlas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+  :root{
+    --ink:#1c1a17;
+    --paper:#f4f0e8;
+    --paper-2:#ebe5d8;
+    --line:#d8cfbc;
+    --accent:#9a3b2e;
+    --accent-soft:#c98a6b;
+    --gold:#b08d4f;
+    --muted:#8a8170;
+    --card:#fbf8f1;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Noto Sans TC',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    overflow:hidden;
+    position:fixed;width:100%;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.04;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- Shell ---------- */
+  #app{height:100%;display:flex;flex-direction:column;position:relative;z-index:2}
+  header{
+    padding:calc(env(safe-area-inset-top) + 18px) 22px 14px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--paper),var(--paper-2));
+  }
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .brand h1{
+    font-family:'Newsreader',serif;font-size:26px;font-weight:600;letter-spacing:.5px;
+  }
+  .brand .en{font-family:'Newsreader',serif;font-style:italic;font-size:13px;color:var(--muted)}
+  .tagline{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:2px;text-transform:uppercase}
+
+  main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:18px 18px 110px}
+
+  /* ---------- Nav ---------- */
+  nav{
+    position:absolute;bottom:0;left:0;right:0;
+    display:flex;justify-content:space-around;
+    padding:10px 8px calc(env(safe-area-inset-bottom) + 10px);
+    background:rgba(244,240,232,.92);
+    backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);z-index:10;
+  }
+  nav button{
+    background:none;border:none;font-family:inherit;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:10px;letter-spacing:1px;padding:4px 14px;cursor:pointer;transition:.2s;
+  }
+  nav button .ic{font-size:19px;line-height:1}
+  nav button.on{color:var(--accent)}
+  nav button.on .ic{transform:translateY(-2px)}
+
+  /* ---------- Views ---------- */
+  .view{display:none;animation:fade .35s ease}
+  .view.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .sec-title{
+    font-family:'Newsreader',serif;font-size:15px;font-style:italic;color:var(--muted);
+    margin:6px 4px 14px;display:flex;align-items:center;gap:10px;
+  }
+  .sec-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- Book cards ---------- */
+  .book{
+    background:var(--card);border:1px solid var(--line);border-radius:3px;
+    padding:16px 16px 14px;margin-bottom:14px;position:relative;
+    box-shadow:3px 3px 0 rgba(154,59,46,.06);cursor:pointer;transition:.18s;
+  }
+  .book:active{transform:scale(.99)}
+  .book .spine{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);border-radius:3px 0 0 3px}
+  .book h3{font-family:'Newsreader',serif;font-size:18px;font-weight:600;line-height:1.3;padding-left:8px}
+  .book .auth{font-size:12px;color:var(--muted);margin:5px 0 12px;padding-left:8px;font-style:italic}
+  .bar{height:5px;background:var(--paper-2);border-radius:3px;overflow:hidden;margin:0 0 6px 8px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-soft));border-radius:3px;transition:width .5s}
+  .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding-left:8px;letter-spacing:.5px}
+  .tag{display:inline-block;font-size:10px;color:var(--gold);border:1px solid var(--gold);
+    border-radius:2px;padding:1px 7px;margin:8px 6px 0 8px;letter-spacing:.5px}
+  .pri{display:inline-block;font-size:10px;border-radius:2px;padding:1px 7px;
+    margin:8px 0 0 8px;letter-spacing:.5px;font-weight:500}
+  .pri.p1{background:var(--accent);color:#fff}
+  .pri.p2{background:var(--gold);color:#fff}
+  .pri.p3{background:var(--paper-2);color:var(--muted);border:1px solid var(--line)}
+  .book.dim{opacity:.62}
+  .book.dragging{opacity:.4;transform:scale(.97)}
+  .book.drop-target{box-shadow:0 -3px 0 var(--accent)}
+  .grip{position:absolute;right:12px;top:14px;color:var(--line);font-size:16px;letter-spacing:-2px;
+    cursor:grab;user-select:none}
+  .drag-hint{font-size:10px;color:var(--muted);text-align:center;margin:-4px 4px 14px;font-style:italic;font-family:'Newsreader',serif}
+  .pri-pick{display:flex;gap:6px;margin:14px 0}
+  .pri-pick button{flex:1;background:var(--card);border:1px solid var(--line);font-family:inherit;
+    font-size:11px;color:var(--muted);padding:9px 0;border-radius:3px;cursor:pointer;letter-spacing:.5px}
+  .pri-pick button.s1{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pri-pick button.s2{background:var(--gold);color:#fff;border-color:var(--gold)}
+  .pri-pick button.s3{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  /* ---------- Detail ---------- */
+  #detail{position:fixed;inset:0;background:var(--paper);z-index:50;display:none;flex-direction:column}
+  #detail.on{display:flex}
+  .d-head{padding:calc(env(safe-area-inset-top) + 16px) 20px 16px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--paper),var(--paper-2))}
+  .back{background:none;border:none;font-family:'Newsreader',serif;font-style:italic;
+    font-size:14px;color:var(--accent);cursor:pointer;margin-bottom:10px}
+  .d-head h2{font-family:'Newsreader',serif;font-size:21px;font-weight:600;line-height:1.25}
+  .d-head .a{font-size:12px;color:var(--muted);font-style:italic;margin-top:4px}
+  .d-tabs{display:flex;gap:4px;margin-top:14px}
+  .d-tabs button{flex:1;background:none;border:1px solid var(--line);font-family:inherit;
+    font-size:11px;color:var(--muted);padding:7px 0;border-radius:2px;cursor:pointer;letter-spacing:1px}
+  .d-tabs button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .d-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 18px 30px}
+
+  .mode-row{display:flex;justify-content:flex-end;margin-bottom:12px}
+  .toggle{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .toggle button{background:var(--card);border:none;font-family:inherit;font-size:10px;
+    color:var(--muted);padding:6px 12px;cursor:pointer;letter-spacing:.5px}
+  .toggle button.on{background:var(--accent);color:#fff}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:3px;
+    padding:14px;margin-bottom:11px;position:relative}
+  .card .en{font-family:'Newsreader',serif;font-size:14px;line-height:1.45;color:#0f3460}
+  .card .cn{font-size:13px;line-height:1.6;margin-top:7px}
+  .card .cn.hide{filter:blur(6px);cursor:pointer;transition:.2s}
+  .card .cn.hide:active{filter:none}
+  .card .note{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);line-height:1.5}
+  .vocab .w{font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:var(--accent)}
+  .vocab .ipa{font-size:11px;color:var(--muted);margin-left:8px;font-style:italic}
+  .vocab .df{font-size:13px;margin-top:5px}
+  .vocab .df.hide{filter:blur(6px)}
+
+  /* ---------- Insight ---------- */
+  .ins-new{display:flex;gap:8px;margin-bottom:16px}
+  .ins-new textarea{flex:1;background:var(--card);border:1px solid var(--line);border-radius:3px;
+    font-family:inherit;font-size:13px;padding:11px;resize:none;height:64px;color:var(--ink)}
+  .ins-new textarea:focus{outline:none;border-color:var(--accent)}
+  .ins-new button{background:var(--ink);color:var(--paper);border:none;border-radius:3px;
+    font-family:'Newsreader',serif;font-style:italic;font-size:13px;padding:0 16px;cursor:pointer}
+  .ins{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:2px;padding:12px 13px;margin-bottom:10px}
+  .ins p{font-size:13px;line-height:1.6}
+  .ins .t{font-size:10px;color:var(--muted);margin-top:7px;font-style:italic;letter-spacing:.5px}
+  .ins .del{float:right;background:none;border:none;color:var(--accent-soft);font-size:15px;cursor:pointer;line-height:1}
+
+  .prog-wrap{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:18px;margin-bottom:16px}
+  .prog-wrap .big{font-family:'Newsreader',serif;font-size:42px;font-weight:600;color:var(--accent);line-height:1}
+  .prog-wrap .lbl{font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:4px}
+  .prog-wrap input[type=range]{width:100%;margin-top:16px;accent-color:var(--accent)}
+  .prog-wrap .pp{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+
+  .empty{text-align:center;color:var(--muted);font-style:italic;font-family:'Newsreader',serif;
+    padding:50px 20px;font-size:14px;line-height:1.7}
+
+  .add-fab{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 78px);right:20px;
+    width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;
+    font-size:26px;cursor:pointer;box-shadow:0 6px 18px rgba(154,59,46,.35);z-index:11;
+    display:flex;align-items:center;justify-content:center;font-family:'Newsreader',serif}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1>讀痕</h1><span class="en">Reading Atlas</span>
+    </div>
+    <div class="tagline">vocabulary · key lines · insight</div>
+  </header>
+
+  <main>
+    <!-- LIBRARY -->
+    <section class="view on" id="v-lib">
+      <div class="sec-title">書架 · The Shelf</div>
+      <div id="bookList"></div>
+    </section>
+
+    <!-- INSIGHTS (all) -->
+    <section class="view" id="v-ins">
+      <div class="sec-title">洞察 · Marginalia</div>
+      <div class="ins-new">
+        <textarea id="globalIns" placeholder="此刻想到的⋯⋯"></textarea>
+        <button onclick="addGlobalInsight()">記下</button>
+      </div>
+      <div id="globalInsList"></div>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="view" id="v-rev">
+      <div class="sec-title">複習 · Recall</div>
+      <div id="reviewPool"></div>
+    </section>
+  </main>
+
+  <button class="add-fab" id="fab" onclick="newBook()">+</button>
+
+  <nav>
+    <button class="on" data-v="v-lib" onclick="nav(this)"><span class="ic">▤</span>書架</button>
+    <button data-v="v-rev" onclick="nav(this)"><span class="ic">✦</span>複習</button>
+    <button data-v="v-ins" onclick="nav(this)"><span class="ic">✎</span>洞察</button>
+  </nav>
+</div>
+
+<!-- DETAIL -->
+<div id="detail">
+  <div class="d-head">
+    <button class="back" onclick="closeDetail()">‹ 回書架</button>
+    <h2 id="dTitle"></h2>
+    <div class="a" id="dAuth"></div>
+    <div class="d-tabs">
+      <button class="on" data-t="words" onclick="dtab(this)">詞彙</button>
+      <button data-t="lines" onclick="dtab(this)">核心語句</button>
+      <button data-t="prog" onclick="dtab(this)">進度</button>
+      <button data-t="note" onclick="dtab(this)">筆記</button>
+    </div>
+  </div>
+  <div class="d-body" id="dBody"></div>
+</div>
+
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║  讀痕 · 資料庫區塊                                                      ║
+║                                                                        ║
+║  ★ 這就是你的資料庫。所有論文、詞彙、語句都寫死在下面這段 DATA 裡。      ║
+║  ★ 不依賴瀏覽器儲存，不會因清快取而消失。檔案在哪，資料就在哪。          ║
+║                                                                        ║
+║  【如何新增一篇論文】                                                   ║
+║  1. 把論文給 Claude，請它「用 reading-atlas 的 book 物件格式輸出」       ║
+║  2. Claude 會給你一段 { id:N, title:..., words:[...], lines:[...] }     ║
+║  3. 用任何文字編輯器打開這個 .html 檔                                    ║
+║  4. 找到下面 ▼▼▼ NEW BOOKS HERE ▼▼▼ 那一行                              ║
+║  5. 把 Claude 給的那段貼在它上面（記得前一筆結尾要有逗號 ,）             ║
+║  6. 存檔。重新打開 HTML，新論文就在書架上了，永久存在。                  ║
+║                                                                        ║
+║  【複習進度怎麼辦】                                                     ║
+║  進度條、熟練度這類「會變動」的東西，因為資料寫死在檔案裡，              ║
+║  改了不會自動存。要嘛接受它是「靜態複習庫」，要嘛改完進度後             ║
+║  把該行數字手動改一下再存檔。這是無資料庫架構的取捨，你已接受。          ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+<script>
+/* ====================================================================
+   DATA — 你的資料庫。手動編輯這裡來新增/修改論文。
+   ==================================================================== */
+const DB = {
+  books:[
+
+  {
+    id:1,
+    title:"En attendant les robots",
+    author:"Antonio A. Casilli (2019)",
+    tag:"數位勞動",
+    priority:1,
+    ord:0,
+    progress:35,
+    pages:"320",
+    words:[
+      {w:"exploitation",ipa:"/ˌeksplɔɪˈteɪʃ(ə)n/",df:"剝削 — Casilli 批判的規範性核心。the exploitation to which digital users are subjected。"},
+      {w:"digital labour",ipa:"/ˈdɪdʒɪtl ˈleɪbə/",df:"數位勞動 — taskified and datafied work used to train automatic systems。"},
+      {w:"valorisation",ipa:"/ˌvæləraɪˈzeɪʃən/",df:"（資本）增值 — a process of economic valorisation controlled by another party。"},
+      {w:"obfuscate",ipa:"/ˈɒbfʌskeɪt/",df:"使模糊以掩蓋 — its laborious dimension is obfuscated by gamification。對應 UX gaslighting。"},
+      {w:"impersonate",ipa:"/ɪmˈpɜːsəneɪt/",df:"假扮 — 馬達加斯加微工 impersonating the purported-AI。"}
+    ],
+    lines:[
+      {en:'These machines are mere "puppets manoeuvred through human labour."',cn:'這些（所謂智能）機器不過是「由人類勞動操縱的木偶」。',note:'你「AI 背後是人」論點的直接彈藥。'},
+      {en:'The ideological working of those discourses consists in concealing the existence of this human labour.',cn:'那些科技論述的意識形態運作，就在於掩蓋這種人類勞動的存在。',note:'對應你的「無摩擦謊言」。'},
+      {en:'Automation is first and foremost a tool for disciplining labour.',cn:'自動化首先是一種規訓勞動的工具。',note:'解釋書名《等待機器人》。'}
+    ],
+    notes:[]
+  },
+  {
+    id:2,
+    title:"'Connected' Presence",
+    author:"Christian Licoppe (2004)",
+    tag:"互動社會學",
+    priority:1,
+    ord:1,
+    progress:60,
+    pages:"135–156, Environment and Planning D",
+    words:[
+      {w:"technoscape",ipa:"/ˈteknəskeɪp/",df:"技術地景 — the changing communication technoscape。指可用通訊技術的整體環境,Licoppe 全文的分析單位。"},
+      {w:"copresence",ipa:"/kəʊˈprezəns/",df:"共同在場 — physical copresence: a situation of time–place unity。面對面互動的時空合一條件。"},
+      {w:"mediated interaction",ipa:"/ˈmiːdieɪtɪd/",df:"中介互動 — interaction embedded in a material and technological base。Licoppe 的微觀分析單位。"},
+      {w:"phatic",ipa:"/ˈfatɪk/",df:"交感的（Jakobson）— an almost 'phatic' mode of maintaining the link。重點不是訊息內容,而是「連結還在」本身。對你研究極關鍵。"},
+      {w:"reassurance",ipa:"/ˌriːəˈʃʊərəns/",df:"再保證 — short calls to reassure the other person and reaffirm the link。連結性在場的核心情感功能。"},
+      {w:"surveillance",ipa:"/səˈveɪləns/",df:"監視 — the threat of seeing the calls swing into the register of surveillance。連結性在場的陰暗面——可隨時觸及=可隨時監控。"}
+    ],
+    lines:[
+      {en:'A "connected" management of relationships, in which the absent party renders himself present by multiplying mediated communication gestures.',cn:'一種「連結式」的關係經營：缺席的一方透過增加中介溝通的小動作,讓自己變得在場。',note:'Connected Presence 的核心定義,必背。你研究 AI 伴侶正是這個邏輯的極端化。'},
+      {en:'The act of calling can then count more than what is said.',cn:'打電話這個行為本身,比說了什麼更重要。',note:'交感模式的精髓——對應你「連結不需要語義完整」的洞察。'},
+      {en:'Each failure indicates unavailability, suggesting that one of the protagonists is too absorbed in a situation to resume the relationship.',cn:'每一次（聯繫）失敗都意味著對方不可及,暗示其中一人太投入某情境而無法回到這段關係。',note:'關鍵——真實連結裡「失敗」是有意義的訊號。AI 消除了這個失敗的可能,也消除了訊號。'},
+      {en:'The very possibility of the expectation of connected presence tipping over into control induces a form of normative constraint and internalized discipline.',cn:'連結性在場的期待一旦可能翻轉成控制,就會誘發一種規範性約束與內化的紀律。',note:'Licoppe 自己引 Foucault——連結性在場本身就是一種規訓技術。這是你橋接批判理論的天然接點。'},
+      {en:'Connected practice could then constitute a technology of power, in the spirit of the role that Foucault gives all panoptic technologies.',cn:'連結式實踐因而可能構成一種權力技術,呼應 Foucault 賦予一切全景敞視技術的角色。',note:'最重要的一句:Licoppe 親自把 Connected Presence 連到 Foucault 的全景監獄。面談引這句,等於告訴他「我讀懂了你最批判的那一面」。'}
+    ],
+    notes:[{txt:"接點:Licoppe 在結論親自引 Foucault,說 connected practice 是 a technology of power。我的批判框架不是強加在他的方法上,而是延伸他自己已經埋下的線。面談主打這個。",date:"2026.5.16"}]
+  }
+
+  /* ▼▼▼ NEW BOOKS HERE ▼▼▼  —— 新論文貼在這一行「上面」，記得前一筆 } 後面加逗號 */
+
+  ],
+  insights:[
+    /* 想預填洞察可照此格式：{txt:"...",date:"2026.5.16"}, */
+  ]
+};
+/* ====================================================================
+   DATA 區結束。以下是程式邏輯，一般不需要動。
+   ==================================================================== */
+
+/* 因為資料寫死在檔案，save() 不寫入任何儲存——改動只在當次瀏覽有效。
+   要永久保存，請直接編輯上面 DATA 區再存檔。 */
+function save(){ /* intentionally no-op: data lives in the file itself */ }
+
+/* ---------- nav ---------- */
+function nav(b){
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.getElementById(b.dataset.v).classList.add('on');
+  document.getElementById('fab').style.display = b.dataset.v==='v-lib'?'flex':'none';
+  if(b.dataset.v==='v-ins')renderGlobalInsights();
+  if(b.dataset.v==='v-rev')renderReview();
+}
+
+/* ---------- library ---------- */
+function renderBooks(){
+  const el=document.getElementById('bookList');
+  if(!DB.books.length){el.innerHTML='<div class="empty">書架是空的。<br>點右下角 + 加入第一本。</div>';return;}
+  const PL={1:'緊急',2:'重要',3:'有空再讀'};
+  const sorted=[...DB.books].sort((a,b)=>
+    ((a.priority||2)-(b.priority||2)) || ((a.ord||0)-(b.ord||0)));
+  el.innerHTML='<div class="drag-hint">長按書卡可在同層級內拖動排序</div>'+
+   sorted.map(b=>{
+    const p=b.priority||2;
+    return `<div class="book ${p===3?'dim':''}" data-id="${b.id}" data-pri="${p}">
+      <span class="spine" style="background:${p===1?'var(--accent)':p===2?'var(--gold)':'var(--line)'}"></span>
+      <span class="grip">⠿</span>
+      <div class="bk-tap" onclick="openBook(${b.id})">
+        <h3>${esc(b.title)}</h3>
+        <div class="auth">${esc(b.author)}</div>
+        <div class="bar"><i style="width:${b.progress}%"></i></div>
+        <div class="meta"><span>進度 ${b.progress}%</span><span>${b.words.length} 詞 · ${b.lines.length} 句</span></div>
+        <span class="pri p${p}">${PL[p]}</span>
+        ${b.tag?`<span class="tag">${esc(b.tag)}</span>`:''}
+      </div>
+    </div>`;}).join('');
+  attachDrag();
+}
+
+/* ---- long-press drag reorder (within same priority) ---- */
+function attachDrag(){
+  const list=document.getElementById('bookList');
+  let dragEl=null,timer=null,startY=0;
+  list.querySelectorAll('.book').forEach(card=>{
+    card.addEventListener('touchstart',e=>{
+      timer=setTimeout(()=>{
+        dragEl=card;card.classList.add('dragging');
+        if(navigator.vibrate)navigator.vibrate(30);
+      },380);
+      startY=e.touches[0].clientY;
+    },{passive:true});
+    card.addEventListener('touchmove',e=>{
+      if(Math.abs(e.touches[0].clientY-startY)>10)clearTimeout(timer);
+      if(!dragEl)return;
+      e.preventDefault();
+      const y=e.touches[0].clientY;
+      list.querySelectorAll('.book').forEach(c=>c.classList.remove('drop-target'));
+      const tgt=[...list.querySelectorAll('.book')].find(c=>{
+        if(c===dragEl)return false;
+        if(c.dataset.pri!==dragEl.dataset.pri)return false;
+        const r=c.getBoundingClientRect();
+        return y>r.top&&y<r.bottom;
+      });
+      if(tgt)tgt.classList.add('drop-target');
+    },{passive:false});
+    card.addEventListener('touchend',()=>{
+      clearTimeout(timer);
+      if(!dragEl){return;}
+      const tgt=list.querySelector('.drop-target');
+      if(tgt)reorder(+dragEl.dataset.id,+tgt.dataset.id);
+      dragEl.classList.remove('dragging');
+      list.querySelectorAll('.book').forEach(c=>c.classList.remove('drop-target'));
+      dragEl=null;
+    });
+  });
+}
+function reorder(fromId,toId){
+  const samePri=DB.books.filter(b=>(b.priority||2)===
+    (DB.books.find(x=>x.id===fromId).priority||2))
+    .sort((a,b)=>(a.ord||0)-(b.ord||0));
+  const fi=samePri.findIndex(b=>b.id===fromId);
+  const ti=samePri.findIndex(b=>b.id===toId);
+  const [m]=samePri.splice(fi,1);samePri.splice(ti,0,m);
+  samePri.forEach((b,i)=>b.ord=i);
+  save();renderBooks();
+}
+function newBook(){
+  const t=prompt('書名 / 論文標題');if(!t)return;
+  const a=prompt('作者（年份）')||'';
+  const pr=prompt('優先度：1=緊急　2=重要　3=有空再讀','2');
+  const p=[1,2,3].includes(+pr)?+pr:2;
+  DB.books.push({id:Date.now(),title:t,author:a,tag:'',priority:p,progress:0,pages:'',words:[],lines:[],notes:[]});
+  save();renderBooks();
+}
+
+/* ---------- detail ---------- */
+let curBook=null,curMode='bi';
+function openBook(id){
+  curBook=DB.books.find(b=>b.id===id);
+  document.getElementById('dTitle').textContent=curBook.title;
+  document.getElementById('dAuth').textContent=curBook.author;
+  document.getElementById('detail').classList.add('on');
+  document.querySelectorAll('.d-tabs button').forEach((x,i)=>x.classList.toggle('on',i===0));
+  renderDetail('words');
+}
+function closeDetail(){document.getElementById('detail').classList.remove('on');renderBooks();}
+function dtab(b){
+  document.querySelectorAll('.d-tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');renderDetail(b.dataset.t);
+}
+function renderDetail(tab){
+  const B=document.getElementById('dBody');const bk=curBook;
+  if(tab==='words'){
+    B.innerHTML=`<div class="mode-row"><div class="toggle">
+      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','words')">釋義</button>
+      <button class="${curMode==='card'?'on':''}" onclick="setMode('card','words')">遮蔽複習</button></div></div>`+
+      (bk.words.length?bk.words.map(w=>`<div class="card vocab">
+        <span class="w">${esc(w.w)}</span><span class="ipa">${esc(w.ipa)}</span>
+        <div class="df ${curMode==='card'?'hide':''}" onclick="this.classList.remove('hide')">${esc(w.df)}</div>
+      </div>`).join(''):'<div class="empty">尚無詞彙。<br>到「筆記」分頁新增。</div>')+
+      `<button class="back" style="margin-top:10px" onclick="addWord()">＋ 新增詞彙</button>`;
+  }
+  if(tab==='lines'){
+    B.innerHTML=`<div class="mode-row"><div class="toggle">
+      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','lines')">中英對照</button>
+      <button class="${curMode==='card'?'on':''}" onclick="setMode('card','lines')">遮中文</button></div></div>`+
+      (bk.lines.length?bk.lines.map(l=>`<div class="card">
+        <div class="en">${esc(l.en)}</div>
+        <div class="cn ${curMode==='card'?'hide':''}" onclick="this.classList.remove('hide')">${esc(l.cn)}</div>
+        ${l.note?`<div class="note">▸ ${esc(l.note)}</div>`:''}
+      </div>`).join(''):'<div class="empty">尚無核心語句。</div>')+
+      `<button class="back" style="margin-top:10px" onclick="addLine()">＋ 新增語句</button>`;
+  }
+  if(tab==='prog'){
+    const p=bk.priority||2;
+    B.innerHTML=`<div class="prog-wrap">
+      <div class="big">${bk.progress}<span style="font-size:18px">%</span></div>
+      <div class="lbl">閱讀進度</div>
+      <input type="range" min="0" max="100" value="${bk.progress}"
+        oninput="this.nextElementSibling.querySelector('b').textContent=this.value+'%'"
+        onchange="setProg(this.value)">
+      <div class="pp"><span>開始</span><b>${bk.progress}%</b><span>讀畢</span></div>
+    </div>
+    <div class="card"><div class="en" style="font-size:13px">閱讀優先度</div>
+      <div class="pri-pick">
+        <button class="${p===1?'s1':''}" onclick="setPri(1)">緊急</button>
+        <button class="${p===2?'s2':''}" onclick="setPri(2)">重要</button>
+        <button class="${p===3?'s3':''}" onclick="setPri(3)">有空再讀</button>
+      </div>
+    </div>
+    <div class="card"><div class="en" style="font-size:13px">頁數 / 分類</div>
+    <div class="cn">${esc(bk.pages||'—')}　·　${bk.tag?esc(bk.tag):'未分類'}
+    <button class="back" style="margin:8px 0 0" onclick="editMeta()">編輯</button></div></div>`;
+  }
+  if(tab==='note'){
+    B.innerHTML=`<div class="ins-new">
+      <textarea id="bkIns" placeholder="這本書讓你想到⋯⋯"></textarea>
+      <button onclick="addBookNote()">記下</button></div>`+
+      (bk.notes.length?bk.notes.map((n,i)=>`<div class="ins">
+        <button class="del" onclick="delNote(${i})">×</button>
+        <p>${esc(n.txt)}</p><div class="t">${n.date}</div></div>`).join(''):
+      '<div class="empty">還沒有筆記。</div>');
+  }
+}
+function setMode(m,tab){curMode=m;renderDetail(tab);}
+function setProg(v){curBook.progress=+v;save();renderDetail('prog');}
+function setPri(p){curBook.priority=p;save();renderDetail('prog');}
+function editMeta(){
+  const pg=prompt('頁數 / 章節',curBook.pages||'');if(pg!==null)curBook.pages=pg;
+  const tg=prompt('分類標籤',curBook.tag||'');if(tg!==null)curBook.tag=tg;
+  save();renderDetail('prog');
+}
+function addWord(){
+  const w=prompt('單字');if(!w)return;
+  const ipa=prompt('音標（可空）')||'';
+  const df=prompt('中文釋義 / 用法')||'';
+  curBook.words.push({w,ipa,df});save();renderDetail('words');
+}
+function addLine(){
+  const en=prompt('英文原句');if(!en)return;
+  const cn=prompt('中文翻譯')||'';
+  const note=prompt('為什麼重要（可空）')||'';
+  curBook.lines.push({en,cn,note});save();renderDetail('lines');
+}
+function addBookNote(){
+  const t=document.getElementById('bkIns').value.trim();if(!t)return;
+  curBook.notes.unshift({txt:t,date:now()});save();renderDetail('note');
+}
+function delNote(i){curBook.notes.splice(i,1);save();renderDetail('note');}
+
+/* ---------- global insight ---------- */
+function addGlobalInsight(){
+  const t=document.getElementById('globalIns').value.trim();if(!t)return;
+  DB.insights.unshift({txt:t,date:now()});document.getElementById('globalIns').value='';
+  save();renderGlobalInsights();
+}
+function renderGlobalInsights(){
+  const el=document.getElementById('globalInsList');
+  el.innerHTML=DB.insights.length?DB.insights.map((n,i)=>`<div class="ins">
+    <button class="del" onclick="delGIns(${i})">×</button>
+    <p>${esc(n.txt)}</p><div class="t">${n.date}</div></div>`).join(''):
+    '<div class="empty">尚無洞察。<br>靈感來的時候，記在這裡。</div>';
+}
+function delGIns(i){DB.insights.splice(i,1);save();renderGlobalInsights();}
+
+/* ---------- review pool ---------- */
+function renderReview(){
+  const el=document.getElementById('reviewPool');
+  let all=[];
+  DB.books.forEach(b=>{
+    b.lines.forEach(l=>all.push({type:'句',book:b.title,...l}));
+    b.words.forEach(w=>all.push({type:'詞',book:b.title,en:w.w+' '+w.ipa,cn:w.df}));
+  });
+  if(!all.length){el.innerHTML='<div class="empty">複習庫是空的。<br>先在書裡加入詞彙與語句。</div>';return;}
+  all.sort(()=>Math.random()-.5);
+  el.innerHTML=all.map(c=>`<div class="card">
+    <div class="en">${esc(c.en)}</div>
+    <div class="cn hide" onclick="this.classList.remove('hide')">${esc(c.cn)}</div>
+    <div class="note">▸ ${c.type} · ${esc(c.book)}　<span style="color:var(--accent-soft)">點擊看答案</span></div>
+  </div>`).join('');
+}
+
+/* ---------- util ---------- */
+function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function now(){const d=new Date();return d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate()+' '+
+  String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+renderBooks();
+</script>
+</body>
+</html>
