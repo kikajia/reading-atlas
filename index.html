@@ -137,8 +137,10 @@
     padding:14px;margin-bottom:11px;position:relative}
   .card .en{font-family:'Newsreader',serif;font-size:14px;line-height:1.45;color:#0f3460}
   .card .cn{font-size:13px;line-height:1.6;margin-top:7px}
-  .card .cn.hide{filter:blur(6px);cursor:pointer;transition:.2s}
-  .card .cn.hide:active{filter:none}
+  .card .cn.hide,
+  .card .en.hide{filter:blur(6px);cursor:pointer;transition:.2s}
+  .card .cn.hide:active,
+  .card .en.hide:active{filter:none}
   .card .note{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);line-height:1.5}
   .vocab .w{font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:var(--accent)}
   .vocab .ipa{font-size:11px;color:var(--muted);margin-left:8px;font-style:italic}
@@ -500,21 +502,23 @@ function renderDetail(tab){
   const B=document.getElementById('dBody');const bk=curBook;
   if(tab==='words'){
     B.innerHTML=`<div class="mode-row"><div class="toggle">
-      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','words')">釋義</button>
-      <button class="${curMode==='card'?'on':''}" onclick="setMode('card','words')">遮蔽複習</button></div></div>`+
+      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','words')">對照</button>
+      <button class="${curMode==='hideCn'?'on':''}" onclick="setMode('hideCn','words')">遮中</button>
+      <button class="${curMode==='hideEn'?'on':''}" onclick="setMode('hideEn','words')">遮英</button></div></div>`+
       (bk.words.length?bk.words.map(w=>`<div class="card vocab">
-        <span class="w">${esc(w.w)}</span><span class="ipa">${esc(w.ipa)}</span>
-        <div class="df ${curMode==='card'?'hide':''}" onclick="this.classList.remove('hide')">${esc(w.df)}</div>
+        <span class="w ${curMode==='hideEn'?'en hide':''}" ${curMode==='hideEn'?'onclick="this.classList.remove(\'hide\')"':''}>${esc(w.w)}</span><span class="ipa">${esc(w.ipa)}</span>
+        <div class="df ${curMode==='hideCn'?'hide':''}" onclick="this.classList.remove('hide')">${esc(w.df)}</div>
       </div>`).join(''):'<div class="empty">尚無詞彙。<br>到「筆記」分頁新增。</div>')+
       `<button class="back" style="margin-top:10px" onclick="addWord()">＋ 新增詞彙</button>`;
   }
   if(tab==='lines'){
     B.innerHTML=`<div class="mode-row"><div class="toggle">
-      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','lines')">中英對照</button>
-      <button class="${curMode==='card'?'on':''}" onclick="setMode('card','lines')">遮中文</button></div></div>`+
+      <button class="${curMode==='bi'?'on':''}" onclick="setMode('bi','lines')">對照</button>
+      <button class="${curMode==='hideCn'?'on':''}" onclick="setMode('hideCn','lines')">遮中</button>
+      <button class="${curMode==='hideEn'?'on':''}" onclick="setMode('hideEn','lines')">遮英</button></div></div>`+
       (bk.lines.length?bk.lines.map(l=>`<div class="card">
-        <div class="en">${esc(l.en)}</div>
-        <div class="cn ${curMode==='card'?'hide':''}" onclick="this.classList.remove('hide')">${esc(l.cn)}</div>
+        <div class="en ${curMode==='hideEn'?'hide':''}" onclick="this.classList.remove('hide')">${esc(l.en)}</div>
+        <div class="cn ${curMode==='hideCn'?'hide':''}" onclick="this.classList.remove('hide')">${esc(l.cn)}</div>
         ${l.note?`<div class="note">▸ ${esc(l.note)}</div>`:''}
       </div>`).join(''):'<div class="empty">尚無核心語句。</div>')+
       `<button class="back" style="margin-top:10px" onclick="addLine()">＋ 新增語句</button>`;
@@ -592,6 +596,8 @@ function renderGlobalInsights(){
 function delGIns(i){DB.insights.splice(i,1);save();renderGlobalInsights();}
 
 /* ---------- review pool ---------- */
+let revMode='hideCn';
+function setRevMode(m){revMode=m;renderReview();}
 function renderReview(){
   const el=document.getElementById('reviewPool');
   let all=[];
@@ -601,9 +607,13 @@ function renderReview(){
   });
   if(!all.length){el.innerHTML='<div class="empty">複習庫是空的。<br>先在書裡加入詞彙與語句。</div>';return;}
   all.sort(()=>Math.random()-.5);
-  el.innerHTML=all.map(c=>`<div class="card">
-    <div class="en">${esc(c.en)}</div>
-    <div class="cn hide" onclick="this.classList.remove('hide')">${esc(c.cn)}</div>
+  el.innerHTML=`<div class="mode-row"><div class="toggle">
+    <button class="${revMode==='hideCn'?'on':''}" onclick="setRevMode('hideCn')">遮中</button>
+    <button class="${revMode==='hideEn'?'on':''}" onclick="setRevMode('hideEn')">遮英</button>
+    <button class="${revMode==='bi'?'on':''}" onclick="setRevMode('bi')">對照</button></div></div>`+
+    all.map(c=>`<div class="card">
+    <div class="en ${revMode==='hideEn'?'hide':''}" onclick="this.classList.remove('hide')">${esc(c.en)}</div>
+    <div class="cn ${revMode==='hideCn'?'hide':''}" onclick="this.classList.remove('hide')">${esc(c.cn)}</div>
     <div class="note">▸ ${c.type} · ${esc(c.book)}　<span style="color:var(--accent-soft)">點擊看答案</span></div>
   </div>`).join('');
 }
